@@ -1,0 +1,53 @@
+Loading MNIST dataset...
+Making training and validation sets...
+Initializing model...
+Training the network...
+Epoch 1/10
+Training Loss: 0.179251, Training Accuracy: 0.9462
+Validation Loss: 0.072248, Validation Accuracy: 0.9771
+Epoch 2/10
+Training Loss: 0.050380, Training Accuracy: 0.9839
+Validation Loss: 0.050110, Validation Accuracy: 0.9849
+Epoch 3/10
+Training Loss: 0.035614, Training Accuracy: 0.9889
+Validation Loss: 0.044547, Validation Accuracy: 0.9865
+Epoch 4/10
+Training Loss: 0.026294, Training Accuracy: 0.9918
+Validation Loss: 0.044476, Validation Accuracy: 0.9862
+Epoch 5/10
+Training Loss: 0.018195, Training Accuracy: 0.9943
+Validation Loss: 0.037384, Validation Accuracy: 0.9893
+Epoch 6/10
+Training Loss: 0.014729, Training Accuracy: 0.9954
+Validation Loss: 0.039217, Validation Accuracy: 0.9889
+Epoch 7/10
+Training Loss: 0.012549, Training Accuracy: 0.9958
+Validation Loss: 0.033778, Validation Accuracy: 0.9907
+Epoch 8/10
+Training Loss: 0.010673, Training Accuracy: 0.9964
+Validation Loss: 0.042363, Validation Accuracy: 0.9889
+Epoch 9/10
+Training Loss: 0.009698, Training Accuracy: 0.9967
+Validation Loss: 0.051696, Validation Accuracy: 0.9877
+Epoch 10/10
+Training Loss: 0.007385, Training Accuracy: 0.9975
+Validation Loss: 0.040784, Validation Accuracy: 0.9910
+Total time: 486.93s
+Evaluating trained network...
+              precision    recall  f1-score   support
+
+    0 - zero       0.09      0.09      0.09       980
+     1 - one       0.11      0.11      0.11      1135
+     2 - two       0.09      0.09      0.09      1032
+   3 - three       0.10      0.10      0.10      1010
+    4 - four       0.10      0.10      0.10       982
+    5 - five       0.08      0.08      0.08       892
+     6 - six       0.10      0.10      0.10       958
+   7 - seven       0.09      0.09      0.09      1028
+   8 - eight       0.11      0.11      0.11       974
+    9 - nine       0.11      0.11      0.11      1009
+
+    accuracy                           0.10     10000
+   macro avg       0.10      0.10      0.10     10000
+weighted avg       0.10      0.10      0.10     10000
+
