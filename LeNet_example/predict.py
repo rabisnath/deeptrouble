@@ -8,6 +8,8 @@ import imutils
 import torch
 import cv2
 
+from uncertainty_estimation import get_uncertainty_per_image
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-m", "--model", type=str, required=True, help="path to trained model")
@@ -41,11 +43,22 @@ if __name__ == '__main__':
 
             # send input to device and make prediction
             img = img.to(device)
-            prediction = model(img)
+            #prediction = model(img)
+            prediction, epistemic_ucs, aleatoric_ucs = get_uncertainty_per_image(model, img)
+
+            # printing predictions
+            #print("\ntrial #{}".format(trial_no))
+            #print("prediction: ", prediction)
+            #print("epistemic uncertainties: ", epistemic_ucs)
+            #print("aleatoric uncertainties: ", aleatoric_ucs)
 
             # find the class label index with the highest corresponding probability
-            indx = prediction.argmax(axis=1).cpu().numpy()[0]
+            #indx = prediction.argmax(axis=1).cpu().numpy()[0]
+            indx = prediction.argmax(axis=0)
             predicted_label = test_data.dataset.classes[indx]
+            epistemic = epistemic_ucs[indx]
+            aleatoric = aleatoric_ucs[indx]
+            total_uncertainty = np.sqrt(epistemic**2 + aleatoric**2)
 
             # convert the image from grayscale to rgb and resize it
             original_img = np.dstack([original_img] * 3)
@@ -54,9 +67,12 @@ if __name__ == '__main__':
             # drawing the predicted label on the image
             color = (0, 255, 0) if ground_truth_label == predicted_label else (0, 0, 255)
             original_img = cv2.putText(original_img, ground_truth_label, (2, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.75, color, 2)
+            
+            text_summary = "Trial: {}\n Ground truth label: {}, predicted label: {}\n".format(trial_no, ground_truth_label, predicted_label)
+            uncertainty_annotation = "uncertainty from model: {}\nuncertainty from data: {}\ntotal uncertainty: {}".format(epistemic, aleatoric, total_uncertainty)
 
             # displaying the result in the terminal 
-            print("Ground truth label: {}, predicted label: {}".format(ground_truth_label, predicted_label))
+            print(text_summary+uncertainty_annotation)
             
             #cv2.imshow("image", original_img)
             #cv2.waitKey(0)
