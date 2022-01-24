@@ -24,7 +24,7 @@ class LeNet(Module):
         n_classes: the number of unique labels/outputs represented in the dataset
 
         '''
-        # calling the constructor for the Model class
+        # calling the constructor for the Module class
         super(LeNet, self).__init__()
 
         # A set of Conv, ReLU and Pool layers
@@ -98,7 +98,7 @@ class Bayesian_LeNet(Module):
         n_classes: the number of unique labels/outputs represented in the dataset
 
         '''
-        # calling the constructor for the Model class
+        # calling the constructor for the Module class
         super(Bayesian_LeNet, self).__init__()
 
         # A set of Conv, ReLU and Pool layers
