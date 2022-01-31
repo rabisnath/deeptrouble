@@ -8,7 +8,7 @@ import imutils
 import torch
 import cv2
 
-from uncertainty_estimation import get_uncertainty_per_image
+from predictions import get_prediction_with_uncertainties
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -44,7 +44,13 @@ if __name__ == '__main__':
             # send input to device and make prediction
             img = img.to(device)
             #prediction = model(img)
-            prediction, epistemic_ucs, aleatoric_ucs = get_uncertainty_per_image(model, img)
+            pred_results = get_prediction_with_uncertainties(model, img, label, test_data)
+            ground_truth_label = pred_results['ground_truth_label']
+            prediction = pred_results['predicted_label']
+            epistemic_ucs = pred_results['epistemic_uncertainty']
+            aleatoric_ucs = pred_results['aleatoric_uncertainty']
+            total_uncertainty = pred_results['total_uncertainty']
+            #prediction, epistemic_ucs, aleatoric_ucs = get_uncertainty_per_image(model, img)
 
             # printing predictions
             #print("\ntrial #{}".format(trial_no))
