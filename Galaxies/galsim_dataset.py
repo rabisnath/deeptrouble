@@ -7,7 +7,56 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 import json
-from collections import defaultdict
+import torch
+from torch.utils.data import TensorDataset
+
+class Galaxy_Profile:
+
+    def __init__(self, params, clean_image, noisy_image, path_to_image=''):
+        self.params = params
+        self.clean_image = clean_image
+        self.noisy_image = noisy_image
+        self.path_to_image = path_to_image
+
+
+class Single_Component_Profile(Galaxy_Profile):
+
+    def __init__(self, n, hlr, clean_image, noisy_image, path_to_image=''):
+        super().__init__(
+            {'sersic_index': n, 'half_light_radius': hlr},
+            clean_image,
+            noisy_image,
+            path_to_image=path_to_image
+        )
+
+class Two_Component_Profile(Galaxy_Profile):
+
+    def __init__(self, n_disk, n_bulge, h_disk, h_bulge, bdr, clean_image, noisy_image, path_to_image=''):
+        super().__init__(
+            {
+                'sersic_index_disk': n_disk,
+                'sersic_index_bulge': n_bulge,
+                'half_light_radius_disk': h_disk,
+                'half_light_radius_bulge': h_bulge,
+                'bulge_disk_ratio': bdr
+            },
+            clean_image,
+            noisy_image,
+            path_to_image=path_to_image
+        )
+
+class NumpyEncoder(json.JSONEncoder):
+    '''
+    https://stackoverflow.com/questions/26646362/numpy-array-is-not-json-serializable
+
+    To restore ndarray from json:
+    json_load = json.loads(json_dump)
+    a_restored = np.asarray(json_load["a"])
+    '''
+    def default(self, obj):
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return json.JSONEncoder.default(self, obj)
 
 # Some parameters to characterize the exposure
 # Mimicking LSST
@@ -74,6 +123,44 @@ def draw_profile_stamp(profile, psf_model, exptime, nx=495, ny=495, px_scale=px_
             plt.savefig(save_file)
     return pristine, noisy
 
+def draw_profile_stamp_no_psf(profile, exptime, nx=495, ny=495, px_scale=px_scale, show=True, save_fig=False, save_file=''):
+    """
+    Routine that returns a 2D numpy array with the noisy and
+    noiseless postage stamps for a given profile
+
+    Inputs:
+    -------
+    profile: GSObject describing the pre-convolved profile.
+    exptime: float, exposure time in seconds.
+    nx: int, number of pixels in the horizontal axis for the postage stamp
+    ny: int, number of pixels in the vertical axis for the postage stamp
+    show: bool, if True it will show the noisy and noiseless images (default: True)
+
+    Outputs:
+    --------
+    pristine: ndarray (nx, ny), noiseless image.
+    noisy: ndarray (nx, ny), noisy image
+    """
+    noise = galsim.PoissonNoise(sky_level=get_flux(sky_brightness, zp, exposure_time))
+    pristine_img = profile.drawImage(nx=nx, ny=ny, scale=px_scale)
+    pristine = pristine_img.array.copy()
+    noise.applyTo(pristine_img)
+    noisy = pristine_img.array
+    if show:
+        f, ax = plt.subplots(ncols=2, nrows=1, figsize=(9, 4))
+        f.suptitle('Single Sersic Profile with n = {:.2f}, half light radius = {} arcsec'.format(profile.n, profile.half_light_radius))
+        ax[0].set_title('Without Noise')
+        ax[1].set_title('With Noise')
+        im = ax[0].imshow(pristine)#, origin='lower')
+        plt.colorbar(im, ax=ax[0], label='Flux')
+        im = ax[1].imshow(noisy)#, origin='lower')
+        plt.colorbar(im, ax=ax[1], label='Flux')
+        plt.tight_layout()
+        if save_fig:
+            plt.savefig(save_file)
+    return pristine, noisy
+
+
 def get_flux(mag, zp, exposure_time, gain=1.0):
     #Given a magnitude and a zeropoint with exposure time, convert to flux counts
     #the gain can also be specified in GalSim when drawing the profiles
@@ -83,67 +170,18 @@ def get_flux(mag, zp, exposure_time, gain=1.0):
 def single_component_profile_stamp(sersic_index=2, half_light_radius=20, save_fig=False, save_file=''):
     '''
     Create a Sersic object with the given sersic index and half light radius,
-    calls draw_profile_stamp and saves the result to save_file (a path)
+    calls draw_profile_stamp_no_psf and saves the result to save_file (a path)
     '''
     sersic_obj1 = galsim.Sersic(n=sersic_index, half_light_radius=half_light_radius, flux=2)
-    pr_galaxy, noisy_galaxy = draw_profile_stamp(sersic_obj1, psf_model, exposure_time, save_fig=save_fig, save_file=save_file)
+    pr_galaxy, noisy_galaxy = draw_profile_stamp_no_psf(sersic_obj1, exposure_time, save_fig=save_fig, save_file=save_file)
     return pr_galaxy, noisy_galaxy
-
-
-class Galaxy_Profile:
-
-    def __init__(self, params, clean_image, noisy_image, path_to_image=''):
-        self.params = params
-        self.clean_image = clean_image
-        self.noisy_image = noisy_image
-        self.path_to_image = path_to_image
-
-
-class Single_Component_Profile(Galaxy_Profile):
-
-    def __init__(self, n, hlr, clean_image, noisy_image, path_to_image=''):
-        super().__init__(
-            {'sersic_index': n, 'half_light_radius': hlr},
-            clean_image,
-            noisy_image,
-            path_to_image=path_to_image
-        )
-
-class Two_Component_Profile(Galaxy_Profile):
-
-    def __init__(self, n_disk, n_bulge, h_disk, h_bulge, bdr, clean_image, noisy_image, path_to_image=''):
-        super().__init__(
-            {
-                'sersic_index_disk': n_disk,
-                'sersic_index_bulge': n_bulge,
-                'half_light_radius_disk': h_disk,
-                'half_light_radius_bulge': h_bulge,
-                'bulge_disk_ratio': bdr
-            },
-            clean_image,
-            noisy_image,
-            path_to_image=path_to_image
-        )
-
-class NumpyEncoder(json.JSONEncoder):
-    '''
-    https://stackoverflow.com/questions/26646362/numpy-array-is-not-json-serializable
-
-    To restore ndarray from json:
-    json_load = json.loads(json_dump)
-    a_restored = np.asarray(json_load["a"])
-    '''
-    def default(self, obj):
-        if isinstance(obj, np.ndarray):
-            return obj.tolist()
-        return json.JSONEncoder.default(self, obj)
 
 
 def many_single_component_profiles(sersic_indices=[], half_light_radii=[], save_figs=False, save_dir=''):
     '''
     Create one Sersic object with each given sersic index and half light radius,
-    calls draw_profile_stamp and saves the result to a generated path
-    Returns a nested dict: guide[n][hlr] = save_file where the image is stored
+    calls draw_profile_stamp_no_psf and saves the result to a generated path
+    Returns a list of Galaxy Profile objects
     '''
 
     profiles = []
@@ -152,28 +190,62 @@ def many_single_component_profiles(sersic_indices=[], half_light_radii=[], save_
         raise ValueError("Given lists do not have the same length")
     
     for i in range(len(sersic_indices)):
+        print("Making Single Component Profile {} of {}.".format(i+1, len(sersic_indices)))
         n = sersic_indices[i]
         hlr = half_light_radii[i]
-        save_file = save_dir+'/'+'single_component_n_{}_hlr_{}.png'.format(n, hlr)
+        save_file = save_dir+'/'+'single_component_n_{:.2f}_hlr_{}.png'.format(n, hlr)
         clean, noisy = single_component_profile_stamp(n, hlr, save_fig=save_figs, save_file=save_file)
         profile = Single_Component_Profile(n, hlr, clean, noisy, save_file)
         profiles.append(profile)
 
     return profiles
 
+def single_component_profiles_as_arrays(sersic_indices=[], half_light_radii=[], save_figs=False, save_dir=''):
+    '''
+    Create one Sersic object with each given sersic index and half light radius,
+    calls draw_profile_stamp_no_psf and saves the result to a generated path
+    Returns a tuple (x_clean, x_noisy, y) of data
+    '''
+
+    x_clean = []
+    x_noisy = []
+    y = []
+
+    if not (len(sersic_indices) == len(half_light_radii)):
+        raise ValueError("Given lists do not have the same length")
+    
+    for i in range(len(sersic_indices)):
+        print("Making Single Component Profile {} of {}.".format(i+1, len(sersic_indices)))
+        n = sersic_indices[i]
+        hlr = half_light_radii[i]
+        save_file = save_dir+'/'+'single_component_n_{:.2f}_hlr_{}.png'.format(n, hlr)
+        clean, noisy = single_component_profile_stamp(n, hlr, save_fig=save_figs, save_file=save_file)
+        x_clean.append(clean)
+        x_noisy.append(noisy)
+        #y.append((n, hlr))
+        y.append(n)
+
+    x_clean = np.array(x_clean, dtype=np.float32)
+    x_noisy = np.array(x_noisy, dtype=np.float32)
+    y = np.array(y, dtype=np.float32)
+
+    print("Got arrays with shapes:", x_clean.shape, x_noisy.shape, y.shape)
+
+    return (x_clean, x_noisy, y)
+
 def two_component_profile_stamp(n_disk=2, n_bulge=0.5, disk_hlr=15, bulge_hlr=5, bulge_disk_ratio=0.2, save_fig=False, save_file=''):
     '''
     Creates a composite of two Sersic objects with the given Sersic indices and half light radii
     before calling draw_profile_stamp and saving the result to save_file
 
-    ! this function relies on global variables including flux, psf_model and exposure time
+    ! this function relies on global variables including flux and exposure time
     '''
 
     flux = get_flux(mag, zp=zp, exposure_time=exposure_time)
     disk = galsim.Sersic(n=n_disk, half_light_radius=disk_hlr, flux=(1-bulge_disk_ratio)*flux)
     bulge = galsim.Sersic(n=n_bulge, half_light_radius=bulge_hlr, flux=bulge_disk_ratio*flux)
     galaxy = disk+bulge
-    pr_galaxy, noisy_galaxy = draw_profile_stamp(galaxy, psf_model, exposure_time, save_fig=save_fig, save_file=save_file)
+    pr_galaxy, noisy_galaxy = draw_profile_stamp_no_psf(galaxy, exposure_time, save_fig=save_fig, save_file=save_file)
 
     return
 
@@ -183,7 +255,7 @@ def many_two_component_profiles(sersic_indices_disk=[], sersic_indices_bulge=[],
     Creates a two-component Sersic object for each set of Sersic indices and half light radii provided
     The bluge_disk_ratio can also be provided, although a default of 0.2 is implemented
     The resulting images are saved to a generated path
-    Returns a nested dict: guide[(n_d, n_b)][(h_d, h_b)][bdr] = save_file where the image is stored
+    Returns a list of Galaxy Profile objects
     '''
 
     profiles = []
@@ -200,6 +272,7 @@ def many_two_component_profiles(sersic_indices_disk=[], sersic_indices_bulge=[],
         raise ValueError("Given lists do not all have the same length")
 
     for i in range(L):
+        print("Making Two Component Profile {} of {}.".format(i+1, L))
         n1 = sersic_indices_disk[i]
         n2 = sersic_indices_bulge[i]
         h1 = hl_radii_disk[i]
@@ -214,32 +287,53 @@ def many_two_component_profiles(sersic_indices_disk=[], sersic_indices_bulge=[],
 
 
 
+
 if __name__ == '__main__':
 
     '''
     Misc warnings / notes:
-        - the Sersic index takes values 0.5 < n < 6
+        - the Sersic index takes values 0.5 < n < 5.5
     
     '''
 
 
     # Making a dataset of single component galaxies
     # def many_single_component_profiles(sersic_indices=[], half_light_radii=[], save_dir=''):
-    save_figs = True
-    n_min = 0.5
-    n_max = 6
-    N = 5
-    sersic_indices = [1]
-    half_light_radii = [15]
-    #sersic_indices = np.linspace(n_min, n_max, N)
-    #half_light_radii = [15 for i in range(N)]
+    save_figs = False
     save_dir = 'images/'
-
-    sample_label = 'single_component_galaxies_hlr_15_{}_values_of_n.json'.format(N)
-    with open(sample_label, 'w+') as f:
-        profiles = many_single_component_profiles(sersic_indices, half_light_radii, save_figs=save_figs, save_dir=save_dir)
-        json.dump([p.__dict__ for p in profiles], f, cls=NumpyEncoder)
+    n_min = 0.5
+    n_max = 4.5
+    N = 10
+    #sersic_indices = [1]
+    #half_light_radii = [15]
+    sersic_indices = np.linspace(n_min, n_max, N)
+    half_light_radii = [15 for i in range(N)]
     
+    '''
+    !!!
+    Next todo: update this to use new single_component_profiles_as_arrays method
+    single_component_profiles_as_arrays(sersic_indices=[], half_light_radii=[], save_figs=False, save_dir='')
+    '''
+
+    clean_sample_label = 'clean_single_component_galaxies_{}_values_of_n.pt'.format(N)
+    noisy_sample_label = 'noisy_single_component_galaxies_{}_values_of_n.pt'.format(N)
+    x_clean, x_noisy, y = single_component_profiles_as_arrays(sersic_indices, half_light_radii, save_figs=False)
+
+    tensor_x_clean = torch.Tensor(x_clean)
+    tensor_x_noisy = torch.Tensor(x_noisy)
+    tensor_y = torch.Tensor(y)
+
+    print("shapes as tensors: ", tensor_x_clean.shape, tensor_x_noisy.shape, tensor_y.shape)
+
+    clean_dataset = TensorDataset(tensor_x_clean, y)
+    noisy_dataset = TensorDataset(tensor_x_noisy, y)
+
+    torch.save(clean_dataset, clean_sample_label)
+    torch.save(noisy_dataset, noisy_sample_label)
 
 
-    
+
+        
+
+
+        
