@@ -7,7 +7,7 @@ from torch.nn import ReLU
 from torch.nn import LogSoftmax
 from torch import flatten
 
-from layers import BBBConv2d, BBBLinear, FlattenLayer
+from LeNet_example.layers import BBBConv2d, BBBLinear, FlattenLayer
 
 '''
 Here I follow along with this tutorial:
@@ -145,5 +145,125 @@ class Bayesian_LeNet(Module):
 		# predictions
         x = self.fc2(x)
         output = self.logSoftmax(x)
+		# return the output predictions
+        return output
+
+
+# versions for regression
+
+class Bayesian_LeNet_R(Module):
+    '''
+    A version of the Bayesian_LeNet class modified for Regression
+    as opposed to classification
+    '''
+    def __init__(self, n_channels=1):
+        '''
+        n_channels: the number of channels in the input images
+        n_classes: the number of unique labels/outputs represented in the dataset
+
+        '''
+        # calling the constructor for the Module class
+        super().__init__()
+
+        # A set of Conv, ReLU and Pool layers
+        self.conv1 = BBBConv2d(in_channels=n_channels, out_channels=20, kernel_size=(5,5))
+        self.relu1 = ReLU()
+        self.maxpool1 = MaxPool2d(kernel_size=(2, 2), stride=(2, 2))
+
+        # A second set of Conv, ReLU and Pool layers
+        self.conv2 = BBBConv2d(in_channels=20, out_channels=50, kernel_size=(5,5))
+        self.relu2 = ReLU()
+        self.maxpool2 = MaxPool2d(kernel_size=(2, 2), stride=(2, 2))
+
+        # A fully connected layer followed by a ReLU
+        self.flatten = FlattenLayer(800)
+        self.fc1 = BBBLinear(in_features=800, out_features=500)
+        self.relu3 = ReLU()
+
+        # A fully connected layer with a single output representing
+        # the network output
+        self.fc2 = BBBLinear(in_features=500, out_features=1)
+
+    def forward(self, x):
+        '''
+        Accepts a batch of input data to feed to the network, 
+        returns the network predictions
+
+        '''
+        # pass the input through our first set of CONV => RELU =>
+		# POOL layers 
+        x = self.conv1(x)
+        x = self.relu1(x)
+        x = self.maxpool1(x)
+		# pass the output from the previous layer through the second
+		# set of CONV => RELU => POOL layers
+        x = self.conv2(x)
+        x = self.relu2(x)
+        x = self.maxpool2(x)
+		# flatten the output from the previous layer and pass it
+		# through our only set of FC => RELU layers
+        x = self.flatten(x)
+        x = self.fc1(x)
+        x = self.relu3(x)
+		# pass the output to our softmax classifier to get our output
+		# predictions
+        x = self.fc2(x)
+        output = x
+		# return the output predictions
+        return output
+
+
+class LeNet_R(Module):
+    def __init__(self, n_channels, n_classes):
+        '''
+        n_channels: the number of channels in the input images
+        n_classes: the number of unique labels/outputs represented in the dataset
+
+        '''
+        # calling the constructor for the Module class
+        super().__init__()
+
+        # A set of Conv, ReLU and Pool layers
+        self.conv1 = Conv2d(in_channels=n_channels, out_channels=20, kernel_size=(5,5))
+        self.relu1 = ReLU()
+        self.maxpool1 = MaxPool2d(kernel_size=(2, 2), stride=(2, 2))
+
+        # A second set of Conv, ReLU and Pool layers
+        self.conv2 = Conv2d(in_channels=20, out_channels=50, kernel_size=(5,5))
+        self.relu2 = ReLU()
+        self.maxpool2 = MaxPool2d(kernel_size=(2, 2), stride=(2, 2))
+
+        # A fully connected layer followed by a ReLU
+        self.fc1 = Linear(in_features=800, out_features=500)
+        self.relu3 = ReLU()
+
+        # Initializing our softmax classifier
+        self.fc2 = Linear(in_features=500, out_features=n_classes)
+
+    def forward(self, x):
+        '''
+        Accepts a batch of input data to feed to the network, 
+        returns the network predictions
+
+        '''
+        # pass the input through our first set of CONV => RELU =>
+		# POOL layers 
+        x = self.conv1(x)
+        x = self.relu1(x)
+        x = self.maxpool1(x)
+		# pass the output from the previous layer through the second
+		# set of CONV => RELU => POOL layers
+        x = self.conv2(x)
+        x = self.relu2(x)
+        x = self.maxpool2(x)
+		# flatten the output from the previous layer and pass it
+		# through our only set of FC => RELU layers
+        x = flatten(x, 1)
+        x = self.fc1(x)
+        x = self.relu3(x)
+		# pass the output to our softmax classifier to get our output
+		# predictions
+        x = self.fc2(x)
+        output = x
 		# return the output predictions
         return output

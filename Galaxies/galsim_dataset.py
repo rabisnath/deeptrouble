@@ -229,7 +229,10 @@ def single_component_profiles_as_arrays(sersic_indices=[], half_light_radii=[], 
     x_noisy = np.array(x_noisy, dtype=np.float32)
     y = np.array(y, dtype=np.float32)
 
-    print("Got arrays with shapes:", x_clean.shape, x_noisy.shape, y.shape)
+    #print("Got arrays with shapes: ", x_clean.shape, x_noisy.shape, y.shape)
+    #print("type of array[0]: ", type(x_clean[0]), type(x_noisy[0]), type(y[0]))
+    #print("type of x[0][0] for x_clean and x_noisy: ", type(x_clean[0][0]), type(x_noisy[0][0]))
+    #print("type of a single pixel (x[0][0][0]): ", type(x_clean[0][0][0]))
 
     return (x_clean, x_noisy, y)
 
@@ -303,7 +306,7 @@ if __name__ == '__main__':
     save_dir = 'images/'
     n_min = 0.5
     n_max = 4.5
-    N = 10
+    N = 1000
     #sersic_indices = [1]
     #half_light_radii = [15]
     sersic_indices = np.linspace(n_min, n_max, N)
@@ -319,14 +322,15 @@ if __name__ == '__main__':
     noisy_sample_label = 'noisy_single_component_galaxies_{}_values_of_n.pt'.format(N)
     x_clean, x_noisy, y = single_component_profiles_as_arrays(sersic_indices, half_light_radii, save_figs=False)
 
-    tensor_x_clean = torch.Tensor(x_clean)
-    tensor_x_noisy = torch.Tensor(x_noisy)
-    tensor_y = torch.Tensor(y)
+    tensor_x_clean = torch.from_numpy(x_clean)
+    tensor_x_noisy = torch.from_numpy(x_noisy)
+    tensor_y = torch.from_numpy(y)
 
-    print("shapes as tensors: ", tensor_x_clean.shape, tensor_x_noisy.shape, tensor_y.shape)
+    #print("shapes as tensors: ", tensor_x_clean.shape, tensor_x_noisy.shape, tensor_y.shape)
+    #print("types: ", tensor_x_clean.type(), tensor_x_noisy.type(), tensor_y.type())
 
-    clean_dataset = TensorDataset(tensor_x_clean, y)
-    noisy_dataset = TensorDataset(tensor_x_noisy, y)
+    clean_dataset = TensorDataset(tensor_x_clean, tensor_y)
+    noisy_dataset = TensorDataset(tensor_x_noisy, tensor_y)
 
     torch.save(clean_dataset, clean_sample_label)
     torch.save(noisy_dataset, noisy_sample_label)
