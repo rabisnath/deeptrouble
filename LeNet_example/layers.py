@@ -57,6 +57,15 @@ class FlattenLayer(ModuleWrapper):
 
     def forward(self, x):
         return x.view(-1, self.num_features)
+        
+class AltFlattenLayer(ModuleWrapper):
+
+    def __init__(self, num_features):
+        super(FlattenLayer, self).__init__()
+        self.num_features = num_features
+
+    def forward(self, x):
+        return x.view(-1)
 
 class BBBConv2d(ModuleWrapper):
     def __init__(self, in_channels, out_channels, kernel_size,

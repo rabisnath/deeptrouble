@@ -1,0 +1,5 @@
+*.json
+*.png
+*.zip
+clean_single_component_galaxies_1000_values_of_n.pt
+noisy_single_component_galaxies_1000_values_of_n.pt
